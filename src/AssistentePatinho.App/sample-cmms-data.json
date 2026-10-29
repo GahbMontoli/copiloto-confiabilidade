@@ -1,0 +1,83 @@
+{
+  "assets": [
+    { "id": "AST-001", "tag": "COMP-01", "name": "Compressor principal", "category": "Compressor", "model": "GA30", "location": "Utilidades", "criticality": "Alta" },
+    { "id": "AST-002", "tag": "COMP-02", "name": "Compressor reserva", "category": "Compressor", "model": "GA30", "location": "Utilidades", "criticality": "Média" },
+    { "id": "AST-003", "tag": "TR-02", "name": "Transportador da Linha 2", "category": "Transportador", "model": "TC-450", "location": "Montagem", "criticality": "Alta" },
+    { "id": "AST-004", "tag": "BAG-03", "name": "Bomba de água gelada", "category": "Bomba", "model": "KSB-40", "location": "Climatização", "criticality": "Alta" },
+    { "id": "AST-005", "tag": "IMP-07", "name": "Impressora de etiquetas", "category": "Impressora", "model": "ZT410", "location": "Expedição", "criticality": "Média" }
+  ],
+  "workOrders": [
+    {
+      "id": "OS-2026-013", "assetId": "AST-001", "openedAt": "2026-10-18T09:20:00-03:00", "closedAt": null,
+      "status": "Aberta", "priority": "Crítica", "failureCode": "TEMP_ALTA", "title": "Compressor desarmando por temperatura alta",
+      "description": "Temperatura de descarga chegou a 112 °C e o compressor desarmou duas vezes.", "cause": "", "resolution": "",
+      "checks": ["Confirmar temperatura e pressão atuais", "Inspecionar condição externa do radiador"], "parts": []
+    },
+    {
+      "id": "OS-2026-014", "assetId": "AST-003", "openedAt": "2026-10-18T10:05:00-03:00", "closedAt": null,
+      "status": "Aberta", "priority": "Alta", "failureCode": "SOBRECARGA", "title": "Transportador para por sobrecarga",
+      "description": "Relé de sobrecarga atua durante lotes pesados na Linha 2.", "cause": "", "resolution": "",
+      "checks": ["Registrar corrente por fase", "Verificar obstruções visíveis"], "parts": []
+    },
+    {
+      "id": "OS-2026-015", "assetId": "AST-004", "openedAt": "2026-10-18T11:40:00-03:00", "closedAt": null,
+      "status": "Aberta", "priority": "Alta", "failureCode": "VAZAO_BAIXA", "title": "Baixa vazão no circuito de água gelada",
+      "description": "Vazão caiu para 62% do valor nominal e a climatização perdeu rendimento.", "cause": "", "resolution": "",
+      "checks": ["Comparar pressão de sucção e descarga", "Verificar alarmes do inversor"], "parts": []
+    },
+    {
+      "id": "OS-2026-001", "assetId": "AST-001", "openedAt": "2026-08-04T08:10:00-03:00", "closedAt": "2026-08-04T12:30:00-03:00",
+      "status": "Concluída", "priority": "Alta", "failureCode": "TEMP_ALTA", "title": "Temperatura elevada no compressor",
+      "description": "Alarme de temperatura de descarga após quatro horas de operação.", "cause": "Radiador obstruído por poeira", "resolution": "Limpeza controlada do radiador e validação da ventilação.",
+      "checks": ["Inspecionar obstrução externa do radiador", "Comparar temperatura antes e depois da limpeza", "Preservar tendência de temperatura"], "parts": []
+    },
+    {
+      "id": "OS-2026-004", "assetId": "AST-001", "openedAt": "2026-09-11T13:20:00-03:00", "closedAt": "2026-09-11T17:10:00-03:00",
+      "status": "Concluída", "priority": "Crítica", "failureCode": "TEMP_ALTA", "title": "Compressor desarmou por alta temperatura",
+      "description": "Temperatura de descarga atingiu 110 °C e causou desarme.", "cause": "Ventilador do trocador com rotação abaixo do esperado", "resolution": "Substituição do capacitor do ventilador e teste em carga.",
+      "checks": ["Confirmar rotação e ruído do ventilador", "Medir corrente do motor do ventilador", "Verificar histórico de temperatura"], "parts": ["Capacitor 12 µF"]
+    },
+    {
+      "id": "OS-2026-006", "assetId": "AST-002", "openedAt": "2026-09-19T07:50:00-03:00", "closedAt": "2026-09-19T10:40:00-03:00",
+      "status": "Concluída", "priority": "Média", "failureCode": "TEMP_ALTA", "title": "Alarme de temperatura no compressor reserva",
+      "description": "Equipamento GA30 apresentou aquecimento durante teste semanal.", "cause": "Nível de óleo abaixo da faixa recomendada", "resolution": "Correção do nível após inspeção de vazamento e novo teste.",
+      "checks": ["Conferir nível de óleo pelo visor", "Inspecionar sinais externos de vazamento", "Consultar última preventiva"], "parts": ["Óleo sintético especificado"]
+    },
+    {
+      "id": "OS-2026-002", "assetId": "AST-003", "openedAt": "2026-08-12T15:00:00-03:00", "closedAt": "2026-08-12T18:15:00-03:00",
+      "status": "Concluída", "priority": "Alta", "failureCode": "SOBRECARGA", "title": "Sobrecarga recorrente no transportador",
+      "description": "Relé atuava quando caixas acumulavam na transferência.", "cause": "Roletes travados aumentaram o esforço do motor", "resolution": "Substituição de dois roletes e alinhamento do trecho.",
+      "checks": ["Girar roletes manualmente após bloqueio seguro", "Registrar corrente por fase", "Inspecionar acúmulo na transferência"], "parts": ["Rolete TC-450"]
+    },
+    {
+      "id": "OS-2026-009", "assetId": "AST-003", "openedAt": "2026-10-02T09:35:00-03:00", "closedAt": "2026-10-02T13:45:00-03:00",
+      "status": "Concluída", "priority": "Alta", "failureCode": "SOBRECARGA", "title": "Motor do transportador em sobrecarga",
+      "description": "Corrente elevada durante produção de lote pesado.", "cause": "Tensão incorreta da correia após ajuste", "resolution": "Correção da tensão conforme procedimento e ensaio em carga.",
+      "checks": ["Comparar tensão da correia com o procedimento", "Medir corrente nas três fases", "Verificar alinhamento das polias"], "parts": []
+    },
+    {
+      "id": "OS-2026-003", "assetId": "AST-004", "openedAt": "2026-08-28T06:45:00-03:00", "closedAt": "2026-08-28T11:25:00-03:00",
+      "status": "Concluída", "priority": "Alta", "failureCode": "VAZAO_BAIXA", "title": "Bomba com baixa vazão",
+      "description": "Pressão de descarga baixa e ruído irregular na bomba.", "cause": "Filtro de sucção saturado", "resolution": "Limpeza do filtro e confirmação das pressões de operação.",
+      "checks": ["Comparar pressão de sucção e descarga", "Verificar diferencial de pressão do filtro", "Registrar ruído e vibração"], "parts": []
+    },
+    {
+      "id": "OS-2026-010", "assetId": "AST-004", "openedAt": "2026-10-05T14:20:00-03:00", "closedAt": "2026-10-05T17:50:00-03:00",
+      "status": "Concluída", "priority": "Média", "failureCode": "VAZAO_BAIXA", "title": "Queda de vazão da água gelada",
+      "description": "Vazão oscilava e inversor operava abaixo da referência.", "cause": "Sensor de pressão com leitura instável", "resolution": "Substituição do sensor e validação da malha.",
+      "checks": ["Comparar indicação do sensor com instrumento de referência", "Verificar alarmes do inversor", "Preservar tendência de vazão"], "parts": ["Sensor de pressão 0-10 bar"]
+    },
+    {
+      "id": "OS-2026-007", "assetId": "AST-005", "openedAt": "2026-09-23T10:00:00-03:00", "closedAt": "2026-09-23T11:20:00-03:00",
+      "status": "Concluída", "priority": "Média", "failureCode": "IMPRESSAO_FALHA", "title": "Etiquetas com impressão incompleta",
+      "description": "Código de barras saiu com falhas e baixo contraste.", "cause": "Cabeça de impressão contaminada", "resolution": "Limpeza conforme procedimento e calibração do contraste.",
+      "checks": ["Executar teste de impressão", "Inspecionar consumível e cabeça sem desmontagem", "Confirmar configuração de contraste"], "parts": []
+    },
+    {
+      "id": "OS-2026-011", "assetId": "AST-005", "openedAt": "2026-10-08T16:10:00-03:00", "closedAt": "2026-10-08T17:00:00-03:00",
+      "status": "Concluída", "priority": "Baixa", "failureCode": "MIDIA", "title": "Etiqueta desalinhada na expedição",
+      "description": "Mídia avançava fora da posição após troca de rolo.", "cause": "Sensor de mídia não recalibrado", "resolution": "Calibração do sensor e validação de vinte etiquetas.",
+      "checks": ["Conferir posicionamento da mídia", "Executar calibração assistida", "Registrar lote do consumível"], "parts": []
+    }
+  ]
+}
