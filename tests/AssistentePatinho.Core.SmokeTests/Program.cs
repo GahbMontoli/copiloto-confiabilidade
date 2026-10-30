@@ -20,6 +20,7 @@ Check("reaproveita verificações históricas", () => analysis.RecommendedChecks
 Check("limita confiança", () => analysis.SimilarCases.All(item => item.Similarity <= 95));
 Check("inclui evidência rastreável", () => analysis.Evidence.Any(item => item.Contains("ATUAL", StringComparison.OrdinalIgnoreCase) || item.Contains("TEMP_ALTA", StringComparison.OrdinalIgnoreCase)));
 Check("aprova conjunto CMMS consistente", () => DoesNotThrow(() => CmmsDatasetValidator.ValidateOrThrow(dataset)));
+Check("exporta pacote tabular Power BI rastreável", () => ExportsPowerBiPackage(dataset));
 
 var unknown = Order("NOVA", "A3", false, "ELETRICA_DESCONHECIDA", "Ruído novo", "Sintoma ainda não classificado");
 var exploratory = new MaintenanceTriageEngine().Analyze(pump, unknown, new CmmsDataset([pump], [unknown]));
@@ -121,5 +122,55 @@ static bool ThrowsInvalidData(Action action)
     catch (InvalidDataException)
     {
         return true;
+    }
+}
+
+static bool ExportsPowerBiPackage(CmmsDataset dataset)
+{
+    var directory = Path.Combine(
+        Path.GetTempPath(),
+        "copiloto-confiabilidade-bi-tests",
+        Guid.NewGuid().ToString("N"));
+    try
+    {
+        var result = CmmsBiExporter.ExportAsync(
+                directory,
+                dataset,
+                new CmmsBiExportOptions(
+                    "test-run",
+                    "fixture.json",
+                    new string('a', 64),
+                    new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero)))
+            .GetAwaiter()
+            .GetResult();
+        var expectedFiles = new[]
+        {
+            "dim_asset.csv",
+            "fact_work_order.csv",
+            "bridge_work_order_check.csv",
+            "bridge_work_order_part.csv",
+            "manifest.json"
+        };
+        if (!expectedFiles.All(file => File.Exists(Path.Combine(directory, file))) ||
+            Directory.EnumerateFiles(directory, "*.html").Any())
+        {
+            return false;
+        }
+
+        var workOrderLines = File.ReadAllLines(Path.Combine(directory, "fact_work_order.csv"));
+        var manifest = File.ReadAllText(Path.Combine(directory, "manifest.json"));
+        return result.WorkOrderCount == dataset.WorkOrders.Count &&
+               workOrderLines.Length == dataset.WorkOrders.Count + 1 &&
+               workOrderLines[0].Contains("evidence_class", StringComparison.Ordinal) &&
+               workOrderLines.Skip(1).All(line => line.Contains("synthetic", StringComparison.Ordinal)) &&
+               manifest.Contains("fixture.json", StringComparison.Ordinal) &&
+               manifest.Contains("Dados sintéticos", StringComparison.Ordinal);
+    }
+    finally
+    {
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, recursive: true);
+        }
     }
 }

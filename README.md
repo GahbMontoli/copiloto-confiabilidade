@@ -45,7 +45,25 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 ```
 
 A validação compila o aplicativo em Release e executa dezoito cenários de fumaça
-do núcleo de triagem.
+do núcleo de triagem e um cenário de exportação BI.
+
+## Exportar dados para Power BI
+
+```powershell
+.\Exportar-PowerBI.ps1
+```
+
+O comando gera em `artifacts\power-bi`:
+
+- `dim_asset.csv`;
+- `fact_work_order.csv`;
+- `bridge_work_order_check.csv`;
+- `bridge_work_order_part.csv`;
+- `manifest.json` com versão, execução, SHA-256 da fonte e contagens.
+
+Todas as linhas são identificadas como `synthetic`. O pacote demonstra
+modelagem, qualidade e integração; não representa dados reais de manutenção e
+não cria dashboards HTML.
 
 ## Gerar pacote para Windows
 
@@ -61,6 +79,7 @@ Desktop Runtime e não altera configurações do Windows.
 
 - `AssistentePatinho.Core`: contratos do CMMS, ativos, ordens e motor de triagem;
 - `AssistentePatinho.App`: interface WPF, mascote 3D e dados demonstrativos;
+- `AssistentePatinho.Export`: exportador tabular versionado para Power BI;
 - `AssistentePatinho.Core.SmokeTests`: cenários executáveis sem dependência de
   serviços externos.
 
