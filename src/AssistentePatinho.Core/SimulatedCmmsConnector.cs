@@ -18,17 +18,12 @@ public sealed class SimulatedCmmsConnector(string dataPath) : ICmmsConnector
     {
         await using var stream = File.OpenRead(dataPath);
         var dataset = await JsonSerializer.DeserializeAsync<CmmsDataset>(stream, Options, cancellationToken);
-        if (dataset is null || dataset.Assets.Count == 0 || dataset.WorkOrders.Count == 0)
+        if (dataset is null)
         {
-            throw new InvalidDataException("O conector CMMS simulado não retornou ativos e ordens válidos.");
+            throw new InvalidDataException("O conector CMMS simulado não retornou um conjunto de dados válido.");
         }
 
-        var assetIds = dataset.Assets.Select(asset => asset.Id).ToHashSet(StringComparer.OrdinalIgnoreCase);
-        if (dataset.WorkOrders.Any(order => !assetIds.Contains(order.AssetId)))
-        {
-            throw new InvalidDataException("Existem ordens vinculadas a ativos inexistentes.");
-        }
-
+        CmmsDatasetValidator.ValidateOrThrow(dataset);
         return dataset;
     }
 }

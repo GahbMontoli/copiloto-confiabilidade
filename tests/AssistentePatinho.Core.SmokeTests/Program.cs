@@ -19,10 +19,41 @@ Check("conta recorrência exata", () => analysis.RecurrenceCount == 1);
 Check("reaproveita verificações históricas", () => analysis.RecommendedChecks.Contains("Inspecionar radiador"));
 Check("limita confiança", () => analysis.SimilarCases.All(item => item.Similarity <= 95));
 Check("inclui evidência rastreável", () => analysis.Evidence.Any(item => item.Contains("ATUAL", StringComparison.OrdinalIgnoreCase) || item.Contains("TEMP_ALTA", StringComparison.OrdinalIgnoreCase)));
+Check("aprova conjunto CMMS consistente", () => DoesNotThrow(() => CmmsDatasetValidator.ValidateOrThrow(dataset)));
 
 var unknown = Order("NOVA", "A3", false, "ELETRICA_DESCONHECIDA", "Ruído novo", "Sintoma ainda não classificado");
 var exploratory = new MaintenanceTriageEngine().Analyze(pump, unknown, new CmmsDataset([pump], [unknown]));
 Check("mantém fallback sem histórico", () => exploratory.SimilarCases.Count == 0 && exploratory.RecommendedChecks.Count >= 3);
+Check("bloqueia ID de ordem duplicado", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset([compressor], [sameAsset, sameAsset]))));
+Check("bloqueia vínculo com ativo inexistente", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset([compressor], [sameModel]))));
+Check("bloqueia ordem concluída sem encerramento", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset([compressor], [sameAsset with { ClosedAt = null }]))));
+Check("bloqueia histórico sem causa registrada", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset([compressor], [sameAsset with { Cause = string.Empty }]))));
+Check("bloqueia análise com ativo divergente", () => ThrowsInvalidData(() =>
+    new MaintenanceTriageEngine().Analyze(pump, current, dataset)));
+Check("bloqueia ID de ativo duplicado", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor, compressorReserve with { Id = compressor.Id }],
+        [current]))));
+Check("bloqueia tag de ativo duplicada ignorando caixa", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor, compressorReserve with { Tag = compressor.Tag.ToLowerInvariant() }],
+        [current]))));
+Check("bloqueia ordem aberta com encerramento", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor],
+        [current with { ClosedAt = current.OpenedAt.AddHours(1) }]))));
+Check("bloqueia encerramento anterior à abertura", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor],
+        [sameAsset with { ClosedAt = sameAsset.OpenedAt.AddMinutes(-1) }]))));
+Check("bloqueia ativo com campo essencial vazio", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor with { Name = string.Empty }],
+        [current]))));
 
 if (failures.Count > 0)
 {
@@ -66,3 +97,29 @@ static WorkOrder Order(
         closed ? "Solução registrada" : string.Empty,
         checks ?? [],
         []);
+
+static bool DoesNotThrow(Action action)
+{
+    try
+    {
+        action();
+        return true;
+    }
+    catch
+    {
+        return false;
+    }
+}
+
+static bool ThrowsInvalidData(Action action)
+{
+    try
+    {
+        action();
+        return false;
+    }
+    catch (InvalidDataException)
+    {
+        return true;
+    }
+}

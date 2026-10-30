@@ -26,6 +26,15 @@ public sealed class MaintenanceTriageEngine
 {
     public MaintenanceAnalysis Analyze(Asset asset, WorkOrder current, CmmsDataset dataset)
     {
+        ArgumentNullException.ThrowIfNull(asset);
+        ArgumentNullException.ThrowIfNull(current);
+        ArgumentNullException.ThrowIfNull(dataset);
+
+        if (!string.Equals(asset.Id, current.AssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            throw new InvalidDataException($"A ordem {current.Id} não pertence ao ativo {asset.Id} selecionado.");
+        }
+
         var closedOrders = dataset.WorkOrders
             .Where(order => order.IsClosed && !string.Equals(order.Id, current.Id, StringComparison.OrdinalIgnoreCase))
             .ToArray();

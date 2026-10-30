@@ -20,6 +20,7 @@ Clique no patinho para abrir o painel. Selecione um ativo e uma ordem, use **Ger
 - cinco ativos simulados;
 - doze ordens iniciais abertas e concluídas;
 - conector CMMS local baseado em JSON;
+- portão de qualidade que bloqueia IDs duplicados, vínculos inválidos, datas incoerentes e históricos concluídos sem causa ou resolução;
 - histórico por ativo;
 - identificação de recorrência;
 - busca ponderada por código de falha, ativo, categoria, modelo e descrição;
@@ -32,6 +33,7 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 ## Segurança e rastreabilidade
 
 - O protótipo é somente leitura; a simulação não altera o arquivo JSON.
+- Dados inconsistentes são rejeitados antes de alimentar a triagem.
 - Casos semelhantes são apoio à decisão, não confirmação de causa raiz.
 - Soluções históricas são exibidas com a ordem de origem.
 - Intervenções continuam dependendo de validação técnica, segurança e aprovação humana.
@@ -42,7 +44,7 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 .\Validar-AssistentePatinho.ps1
 ```
 
-A validação compila o aplicativo em Release e executa sete cenários de fumaça
+A validação compila o aplicativo em Release e executa dezoito cenários de fumaça
 do núcleo de triagem.
 
 ## Gerar pacote para Windows
