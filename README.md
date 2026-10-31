@@ -44,8 +44,8 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 .\Validar-AssistentePatinho.ps1
 ```
 
-A validação compila o aplicativo em Release e executa dezoito cenários de fumaça
-do núcleo de triagem e um cenário de exportação BI.
+A validação compila o aplicativo em Release e executa vinte e um cenários do núcleo,
+incluindo o contrato de exportação BI e a rejeição de backlog temporalmente inválido.
 
 ## Exportar dados para Power BI
 
@@ -64,6 +64,10 @@ O comando gera em `artifacts\power-bi`:
 Todas as linhas são identificadas como `synthetic`. O pacote demonstra
 modelagem, qualidade e integração; não representa dados reais de manutenção e
 não cria dashboards HTML.
+
+No contrato v2, `backlog_age_hours` registra horas corridas entre a abertura e o
+instante UTC da exportação somente para ordens abertas. O campo fica vazio para
+ordens concluídas e não representa horas trabalhadas, indisponibilidade nem MTTR.
 
 ## Gerar pacote para Windows
 

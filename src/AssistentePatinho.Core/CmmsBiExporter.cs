@@ -22,7 +22,7 @@ public sealed record CmmsBiExportResult(
 
 public static class CmmsBiExporter
 {
-    public const int CurrentSchemaVersion = 1;
+    public const int CurrentSchemaVersion = 2;
     public const string ProjectId = "copiloto-confiabilidade";
 
     public static string ComputeSha256(ReadOnlySpan<byte> content) =>
@@ -40,9 +40,10 @@ public static class CmmsBiExporter
         ValidateOptions(options);
         CmmsDatasetValidator.ValidateOrThrow(dataset);
 
+        var exportedAtUtc = options.ExportedAtUtc.ToUniversalTime();
+        ValidateBacklogTimestamps(dataset.WorkOrders, exportedAtUtc);
         outputDirectory = Path.GetFullPath(outputDirectory);
         Directory.CreateDirectory(outputDirectory);
-        var exportedAtUtc = options.ExportedAtUtc.ToUniversalTime();
         var checkCount = dataset.WorkOrders.Sum(order => order.Checks.Count);
         var partCount = dataset.WorkOrders.Sum(order => order.Parts.Count);
 
@@ -155,7 +156,7 @@ public static class CmmsBiExporter
         await writer.WriteLineAsync(
             "schema_version,project_id,run_id,source_id,asset_id,observed_at_utc," +
             "ingested_at_utc,evidence_class,quality_status,work_order_id,opened_at_utc," +
-            "closed_at_utc,is_closed,duration_hours,status,priority,failure_code,title," +
+            "closed_at_utc,is_closed,duration_hours,backlog_age_hours,status,priority,failure_code,title," +
             "has_cause,has_resolution,checks_count,parts_count");
         foreach (var order in workOrders)
         {
@@ -165,6 +166,9 @@ public static class CmmsBiExporter
             var duration = closedAtUtc is null
                 ? string.Empty
                 : (closedAtUtc.Value - openedAtUtc).TotalHours.ToString("0.###", CultureInfo.InvariantCulture);
+            var backlogAge = order.IsOpen
+                ? (exportedAtUtc - openedAtUtc).TotalHours.ToString("0.###", CultureInfo.InvariantCulture)
+                : string.Empty;
             await writer.WriteLineAsync(Join(
                 CurrentSchemaVersion,
                 ProjectId,
@@ -180,6 +184,7 @@ public static class CmmsBiExporter
                 closedAtUtc?.ToString("O", CultureInfo.InvariantCulture) ?? string.Empty,
                 Boolean(order.IsClosed),
                 duration,
+                backlogAge,
                 order.Status,
                 order.Priority,
                 order.FailureCode,
@@ -249,6 +254,28 @@ public static class CmmsBiExporter
             throw new ArgumentException(
                 "O exportador demonstrativo aceita somente evidence_class=synthetic.",
                 nameof(options));
+        }
+    }
+
+    private static void ValidateBacklogTimestamps(
+        IEnumerable<WorkOrder> workOrders,
+        DateTimeOffset exportedAtUtc)
+    {
+        var futureOpenOrder = workOrders.FirstOrDefault(order =>
+            order.IsOpen && order.OpenedAt.ToUniversalTime() > exportedAtUtc);
+        if (futureOpenOrder is not null)
+        {
+            throw new InvalidDataException(
+                $"A ordem aberta {futureOpenOrder.Id} começa após o instante da exportação e produziria idade de backlog negativa.");
+        }
+
+        var futureDatedOrder = workOrders.FirstOrDefault(order =>
+            order.OpenedAt.ToUniversalTime() > exportedAtUtc ||
+            order.ClosedAt?.ToUniversalTime() > exportedAtUtc);
+        if (futureDatedOrder is not null)
+        {
+            throw new InvalidDataException(
+                $"A ordem {futureDatedOrder.Id} contém data posterior ao instante da exportação.");
         }
     }
 }

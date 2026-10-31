@@ -50,12 +50,17 @@ public static class CmmsDatasetValidator
                 errors.Add($"ordem {order.Id} vinculada ao ativo inexistente {order.AssetId}");
             }
 
+            if (!order.IsOpen && !order.IsClosed)
+            {
+                errors.Add($"ordem {order.Id} com status não controlado: {DisplayId(order.Status)}");
+            }
+
             if (order.IsClosed && order.ClosedAt is null)
             {
                 errors.Add($"ordem concluída {order.Id} sem data de encerramento");
             }
 
-            if (!order.IsClosed && order.ClosedAt is not null)
+            if (order.IsOpen && order.ClosedAt is not null)
             {
                 errors.Add($"ordem aberta {order.Id} com data de encerramento");
             }

@@ -15,6 +15,7 @@ public sealed record WorkOrder(
     IReadOnlyList<string> Checks,
     IReadOnlyList<string> Parts)
 {
+    public bool IsOpen => string.Equals(Status, "Aberta", StringComparison.OrdinalIgnoreCase);
     public bool IsClosed => string.Equals(Status, "Concluída", StringComparison.OrdinalIgnoreCase);
     public string DisplayName => $"{Id} · {Title}";
 }

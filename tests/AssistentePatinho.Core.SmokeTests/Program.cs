@@ -21,6 +21,7 @@ Check("limita confiança", () => analysis.SimilarCases.All(item => item.Similari
 Check("inclui evidência rastreável", () => analysis.Evidence.Any(item => item.Contains("ATUAL", StringComparison.OrdinalIgnoreCase) || item.Contains("TEMP_ALTA", StringComparison.OrdinalIgnoreCase)));
 Check("aprova conjunto CMMS consistente", () => DoesNotThrow(() => CmmsDatasetValidator.ValidateOrThrow(dataset)));
 Check("exporta pacote tabular Power BI rastreável", () => ExportsPowerBiPackage(dataset));
+Check("bloqueia idade negativa de backlog", () => RejectsFutureBacklog(dataset));
 
 var unknown = Order("NOVA", "A3", false, "ELETRICA_DESCONHECIDA", "Ruído novo", "Sintoma ainda não classificado");
 var exploratory = new MaintenanceTriageEngine().Analyze(pump, unknown, new CmmsDataset([pump], [unknown]));
@@ -55,6 +56,10 @@ Check("bloqueia ativo com campo essencial vazio", () => ThrowsInvalidData(() =>
     CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
         [compressor with { Name = string.Empty }],
         [current]))));
+Check("bloqueia status de ordem não controlado", () => ThrowsInvalidData(() =>
+    CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
+        [compressor],
+        [current with { Status = "Pendente" }]))));
 
 if (failures.Count > 0)
 {
@@ -87,8 +92,8 @@ static WorkOrder Order(
     IReadOnlyList<string>? checks = null) => new(
         id,
         assetId,
-        DateTimeOffset.Now.AddDays(-2),
-        closed ? DateTimeOffset.Now.AddDays(-1) : null,
+        new DateTimeOffset(2026, 10, 28, 12, 0, 0, TimeSpan.Zero),
+        closed ? new DateTimeOffset(2026, 10, 29, 12, 0, 0, TimeSpan.Zero) : null,
         closed ? "Concluída" : "Aberta",
         "Alta",
         failureCode,
@@ -159,12 +164,111 @@ static bool ExportsPowerBiPackage(CmmsDataset dataset)
 
         var workOrderLines = File.ReadAllLines(Path.Combine(directory, "fact_work_order.csv"));
         var manifest = File.ReadAllText(Path.Combine(directory, "manifest.json"));
+        var columns = workOrderLines[0].Split(',');
+        var idIndex = Array.IndexOf(columns, "work_order_id");
+        var backlogAgeIndex = Array.IndexOf(columns, "backlog_age_hours");
+        var rows = workOrderLines.Skip(1)
+            .Select(ParseCsvLine)
+            .ToDictionary(fields => fields[idIndex], StringComparer.Ordinal);
         return result.WorkOrderCount == dataset.WorkOrders.Count &&
                workOrderLines.Length == dataset.WorkOrders.Count + 1 &&
+               idIndex >= 0 &&
+               backlogAgeIndex >= 0 &&
+               rows["ATUAL"][backlogAgeIndex] == "48" &&
+               rows["H1"][backlogAgeIndex] == string.Empty &&
                workOrderLines[0].Contains("evidence_class", StringComparison.Ordinal) &&
                workOrderLines.Skip(1).All(line => line.Contains("synthetic", StringComparison.Ordinal)) &&
                manifest.Contains("fixture.json", StringComparison.Ordinal) &&
                manifest.Contains("Dados sintéticos", StringComparison.Ordinal);
+    }
+    finally
+    {
+        if (Directory.Exists(directory))
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+}
+
+static string[] ParseCsvLine(string line)
+{
+    var fields = new List<string>();
+    var current = new System.Text.StringBuilder();
+    var quoted = false;
+    for (var index = 0; index < line.Length; index++)
+    {
+        var character = line[index];
+        if (character == '"')
+        {
+            if (quoted && index + 1 < line.Length && line[index + 1] == '"')
+            {
+                current.Append('"');
+                index++;
+            }
+            else
+            {
+                quoted = !quoted;
+            }
+        }
+        else if (character == ',' && !quoted)
+        {
+            fields.Add(current.ToString());
+            current.Clear();
+        }
+        else
+        {
+            current.Append(character);
+        }
+    }
+
+    if (quoted)
+    {
+        throw new InvalidDataException("Linha CSV com aspas não balanceadas.");
+    }
+
+    fields.Add(current.ToString());
+    return fields.ToArray();
+}
+
+static bool RejectsFutureBacklog(CmmsDataset dataset)
+{
+    var exportedAtUtc = new DateTimeOffset(2026, 10, 30, 12, 0, 0, TimeSpan.Zero);
+    var futureOrder = dataset.WorkOrders.First(order => !order.IsClosed) with
+    {
+        OpenedAt = exportedAtUtc.AddMinutes(1)
+    };
+    var candidate = dataset with
+    {
+        WorkOrders = dataset.WorkOrders
+            .Select(order => order.Id == futureOrder.Id ? futureOrder : order)
+            .ToArray()
+    };
+    var directory = Path.Combine(
+        Path.GetTempPath(),
+        "copiloto-confiabilidade-bi-future-tests",
+        Guid.NewGuid().ToString("N"));
+
+    try
+    {
+        try
+        {
+            CmmsBiExporter.ExportAsync(
+                    directory,
+                    candidate,
+                    new CmmsBiExportOptions(
+                        "future-test-run",
+                        "fixture.json",
+                        new string('b', 64),
+                        exportedAtUtc))
+                .GetAwaiter()
+                .GetResult();
+            return false;
+        }
+        catch (InvalidDataException exception)
+        {
+            return exception.Message.Contains("backlog negativa", StringComparison.Ordinal) &&
+                   !Directory.Exists(directory);
+        }
     }
     finally
     {
