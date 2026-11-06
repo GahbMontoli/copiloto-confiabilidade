@@ -24,6 +24,7 @@ Clique no patinho para abrir o painel. Selecione um ativo e uma ordem, use **Ger
 - histórico por ativo;
 - identificação de recorrência;
 - busca ponderada por código de falha, ativo, categoria, modelo e descrição;
+- explicação dos critérios e pesos que compõem cada similaridade histórica;
 - verificações recuperadas de ordens concluídas;
 - evidências e limitações visíveis;
 - simulação de nova ocorrência somente em memória.

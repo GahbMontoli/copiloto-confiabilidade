@@ -8,10 +8,14 @@ public sealed record SimilarMaintenanceCase(
     string AssetName,
     string Title,
     int Similarity,
+    IReadOnlyList<string> MatchReasons,
     string Cause,
     string Resolution)
 {
-    public string DisplaySummary => $"{Similarity}% · {WorkOrderId} · {Title}\nCausa: {Cause}\nSolução registrada: {Resolution}";
+    public string DisplaySummary =>
+        $"{Similarity}% · {WorkOrderId} · {Title}\n" +
+        $"Critérios de aderência: {string.Join("; ", MatchReasons)}\n" +
+        $"Causa registrada no histórico: {Cause}\nSolução registrada: {Resolution}";
 }
 
 public sealed record MaintenanceAnalysis(
@@ -43,9 +47,9 @@ public sealed class MaintenanceTriageEngine
             string.Equals(order.FailureCode, current.FailureCode, StringComparison.OrdinalIgnoreCase));
 
         var similarCases = closedOrders
-            .Select(order => new { Order = order, Score = Similarity(asset, current, order, dataset) })
-            .Where(item => item.Score >= 20)
-            .OrderByDescending(item => item.Score)
+            .Select(order => new { Order = order, Assessment = Similarity(asset, current, order, dataset) })
+            .Where(item => item.Assessment.Score >= 20)
+            .OrderByDescending(item => item.Assessment.Score)
             .ThenByDescending(item => item.Order.ClosedAt)
             .Take(3)
             .Select(item =>
@@ -55,7 +59,8 @@ public sealed class MaintenanceTriageEngine
                     item.Order.Id,
                     caseAsset.DisplayName,
                     item.Order.Title,
-                    item.Score,
+                    item.Assessment.Score,
+                    item.Assessment.Reasons,
                     item.Order.Cause,
                     item.Order.Resolution);
             })
@@ -104,17 +109,52 @@ public sealed class MaintenanceTriageEngine
             "Similaridade histórica apoia a decisão, mas não confirma causa raiz. Toda intervenção exige validação técnica e de segurança.");
     }
 
-    private static int Similarity(Asset currentAsset, WorkOrder current, WorkOrder candidate, CmmsDataset dataset)
+    private static SimilarityAssessment Similarity(
+        Asset currentAsset,
+        WorkOrder current,
+        WorkOrder candidate,
+        CmmsDataset dataset)
     {
         var candidateAsset = dataset.Assets.First(asset => asset.Id == candidate.AssetId);
         var score = 0.0;
-        if (string.Equals(current.FailureCode, candidate.FailureCode, StringComparison.OrdinalIgnoreCase)) score += 35;
-        if (string.Equals(current.AssetId, candidate.AssetId, StringComparison.OrdinalIgnoreCase)) score += 20;
-        if (string.Equals(currentAsset.Category, candidateAsset.Category, StringComparison.OrdinalIgnoreCase)) score += 15;
-        if (string.Equals(currentAsset.Model, candidateAsset.Model, StringComparison.OrdinalIgnoreCase)) score += 10;
-        score += TokenSimilarity(current.Title + " " + current.Description, candidate.Title + " " + candidate.Description) * 20;
-        return Math.Clamp((int)Math.Round(score), 0, 95);
+        var reasons = new List<string>();
+        if (string.Equals(current.FailureCode, candidate.FailureCode, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 35;
+            reasons.Add("mesmo código de falha (+35)");
+        }
+        if (string.Equals(current.AssetId, candidate.AssetId, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 20;
+            reasons.Add("mesmo ativo (+20)");
+        }
+        if (string.Equals(currentAsset.Category, candidateAsset.Category, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 15;
+            reasons.Add("mesma categoria de ativo (+15)");
+        }
+        if (string.Equals(currentAsset.Model, candidateAsset.Model, StringComparison.OrdinalIgnoreCase))
+        {
+            score += 10;
+            reasons.Add("mesmo modelo (+10)");
+        }
+
+        var tokenSimilarity = TokenSimilarity(
+            current.Title + " " + current.Description,
+            candidate.Title + " " + candidate.Description);
+        var textPoints = tokenSimilarity * 20;
+        score += textPoints;
+        if (textPoints > 0)
+        {
+            reasons.Add($"sobreposição textual (+{Math.Round(textPoints):0})");
+        }
+
+        return new SimilarityAssessment(
+            Math.Clamp((int)Math.Round(score), 0, 95),
+            reasons);
     }
+
+    private sealed record SimilarityAssessment(int Score, IReadOnlyList<string> Reasons);
 
     private static double TokenSimilarity(string first, string second)
     {

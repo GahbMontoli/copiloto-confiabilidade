@@ -18,6 +18,12 @@ Check("ignora ordens ainda abertas", () => analysis.SimilarCases.All(item => ite
 Check("conta recorrência exata", () => analysis.RecurrenceCount == 1);
 Check("reaproveita verificações históricas", () => analysis.RecommendedChecks.Contains("Inspecionar radiador"));
 Check("limita confiança", () => analysis.SimilarCases.All(item => item.Similarity <= 95));
+Check("explica critérios da similaridade", () =>
+    analysis.SimilarCases[0].MatchReasons.Contains("mesmo código de falha (+35)") &&
+    analysis.SimilarCases[0].MatchReasons.Contains("mesmo ativo (+20)") &&
+    analysis.SimilarCases[0].DisplaySummary.Contains(
+        "Causa registrada no histórico",
+        StringComparison.Ordinal));
 Check("inclui evidência rastreável", () => analysis.Evidence.Any(item => item.Contains("ATUAL", StringComparison.OrdinalIgnoreCase) || item.Contains("TEMP_ALTA", StringComparison.OrdinalIgnoreCase)));
 Check("aprova conjunto CMMS consistente", () => DoesNotThrow(() => CmmsDatasetValidator.ValidateOrThrow(dataset)));
 Check("exporta pacote tabular Power BI rastreável", () => ExportsPowerBiPackage(dataset));
