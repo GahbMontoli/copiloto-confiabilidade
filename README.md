@@ -20,7 +20,7 @@ Clique no patinho para abrir o painel. Selecione um ativo e uma ordem, use **Ger
 - cinco ativos simulados;
 - doze ordens iniciais abertas e concluídas;
 - conector CMMS local baseado em JSON;
-- portão de qualidade que bloqueia IDs duplicados, vínculos inválidos, datas incoerentes e históricos concluídos sem causa ou resolução;
+- portão de qualidade executado antes da triagem, que bloqueia IDs duplicados, vínculos inválidos, campos mínimos ausentes, datas incoerentes e históricos concluídos sem causa ou resolução;
 - histórico por ativo;
 - identificação de recorrência;
 - busca ponderada por código de falha, ativo, categoria, modelo e descrição;
@@ -45,7 +45,7 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 .\Validar-AssistentePatinho.ps1
 ```
 
-A validação compila o aplicativo em Release e executa vinte e um cenários do núcleo,
+A validação compila o aplicativo em Release e executa vinte e três cenários do núcleo,
 incluindo o contrato de exportação BI e a rejeição de backlog temporalmente inválido.
 
 ## Exportar dados para Power BI

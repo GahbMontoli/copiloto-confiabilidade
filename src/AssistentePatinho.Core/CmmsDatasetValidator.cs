@@ -39,9 +39,11 @@ public static class CmmsDatasetValidator
         foreach (var order in workOrders)
         {
             if (string.IsNullOrWhiteSpace(order.Id) || string.IsNullOrWhiteSpace(order.AssetId) ||
-                string.IsNullOrWhiteSpace(order.FailureCode) || string.IsNullOrWhiteSpace(order.Title))
+                string.IsNullOrWhiteSpace(order.FailureCode) || string.IsNullOrWhiteSpace(order.Title) ||
+                string.IsNullOrWhiteSpace(order.Description))
             {
-                errors.Add($"ordem {DisplayId(order.Id)} com identificação, ativo, código de falha ou título vazio");
+                errors.Add(
+                    $"ordem {DisplayId(order.Id)} com identificação, ativo, código de falha, título ou descrição vazio");
                 continue;
             }
 

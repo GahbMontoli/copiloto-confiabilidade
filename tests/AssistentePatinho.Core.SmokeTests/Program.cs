@@ -42,6 +42,19 @@ Check("bloqueia histórico sem causa registrada", () => ThrowsInvalidData(() =>
     CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset([compressor], [sameAsset with { Cause = string.Empty }]))));
 Check("bloqueia análise com ativo divergente", () => ThrowsInvalidData(() =>
     new MaintenanceTriageEngine().Analyze(pump, current, dataset)));
+Check("bloqueia triagem sem descrição mínima", () => ThrowsInvalidData(() =>
+{
+    var incomplete = current with { Description = string.Empty };
+    new MaintenanceTriageEngine().Analyze(
+        compressor,
+        incomplete,
+        dataset with
+        {
+            WorkOrders = dataset.WorkOrders
+                .Select(order => order.Id == incomplete.Id ? incomplete : order)
+                .ToArray()
+        });
+}));
 Check("bloqueia ID de ativo duplicado", () => ThrowsInvalidData(() =>
     CmmsDatasetValidator.ValidateOrThrow(new CmmsDataset(
         [compressor, compressorReserve with { Id = compressor.Id }],

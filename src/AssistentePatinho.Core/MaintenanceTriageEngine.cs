@@ -33,6 +33,7 @@ public sealed class MaintenanceTriageEngine
         ArgumentNullException.ThrowIfNull(asset);
         ArgumentNullException.ThrowIfNull(current);
         ArgumentNullException.ThrowIfNull(dataset);
+        CmmsDatasetValidator.ValidateOrThrow(dataset);
 
         if (!string.Equals(asset.Id, current.AssetId, StringComparison.OrdinalIgnoreCase))
         {
