@@ -109,6 +109,25 @@ public partial class MainWindow : Window
 
     private void Analyze_Click(object sender, RoutedEventArgs e) => AnalyzeSelectedCase(showReaction: true);
 
+    private void AnalyzeFile_Click(object sender, RoutedEventArgs e) => OpenFileAnalysis();
+
+    private void Window_PreviewKeyDown(object sender, KeyEventArgs e)
+    {
+        if (e.Key == Key.O && Keyboard.Modifiers.HasFlag(ModifierKeys.Control))
+        {
+            e.Handled = true;
+            OpenFileAnalysis();
+        }
+    }
+
+    private void OpenFileAnalysis()
+    {
+        DuckSpeechText.Text = "Vou analisar o arquivo localmente, sem transmitir o conteúdo.";
+        SpeechBubble.Visibility = Visibility.Visible;
+        ((Storyboard)FindResource("DuckClick")).Begin(this, true);
+        new FileAnalysisWindow { Owner = this }.ShowDialog();
+    }
+
     private void AnalyzeSelectedCase(bool showReaction = false)
     {
         if (_dataset is null || AssetSelector.SelectedItem is not Asset asset || WorkOrderSelector.SelectedItem is not WorkOrder order)

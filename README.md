@@ -15,6 +15,14 @@ Set-Location '.\copiloto-confiabilidade'
 
 Clique no patinho para abrir o painel. Selecione um ativo e uma ordem, use **Gerar triagem** para revisar os casos semelhantes ou **Simular nova falha** para criar uma ocorrência temporária. Nenhuma integração externa ou alteração de equipamento é executada.
 
+Use **Analisar arquivo** ou `Ctrl+O` para abrir a inspeção local. Selecione um `.csv`, `.json`,
+`.log` ou `.txt`, declare a classe da fonte quando ela for conhecida e revise os
+achados com evidência, localização, recomendação e limitação. A janela exibe o
+SHA-256 da fonte e informa quando um resultado foi reutilizado do cache.
+Na janela, `Alt+S` abre a seleção e `Alt+E` executa a análise.
+Como alternativa acessível, cole o caminho completo no campo de arquivo e
+pressione `Enter`.
+
 ## Escopo do protótipo
 
 - cinco ativos simulados;
@@ -45,6 +53,8 @@ O primeiro núcleo de análise offline processa `.csv`, `.json`, `.log` e `.txt`
 sem transmitir conteúdo ou chamar um modelo de linguagem. Ele aplica regras
 estruturais versionadas, registra localização, severidade, evidência,
 recomendação e limitação, e reutiliza resultados por SHA-256 em cache local.
+O mesmo núcleo pode ser usado pelo comando abaixo ou pela janela **Analisar
+arquivo** do aplicativo.
 
 ```powershell
 .\Analisar-Arquivo.ps1 -Path .\dados.csv -EvidenceClass synthetic

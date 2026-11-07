@@ -5,7 +5,8 @@
         Title="Copiloto de Confiabilidade" Width="640" Height="760"
         WindowStyle="None" AllowsTransparency="True" Background="Transparent"
         Topmost="True" ShowInTaskbar="True" ResizeMode="NoResize"
-        UseLayoutRounding="True" SnapsToDevicePixels="True">
+        UseLayoutRounding="True" SnapsToDevicePixels="True"
+        PreviewKeyDown="Window_PreviewKeyDown">
     <Window.Resources>
         <Storyboard x:Key="DuckIdle" RepeatBehavior="Forever" AutoReverse="True">
             <DoubleAnimation Storyboard.TargetName="DuckFloatTransform" Storyboard.TargetProperty="Y" From="0" To="-7" Duration="0:0:1.5"/>
@@ -138,6 +139,7 @@
 
                 <WrapPanel Grid.Row="4" Margin="0,15,0,0">
                     <Button x:Name="AnalyzeButton" Content="✦ Gerar triagem" Click="Analyze_Click" Background="#D9F4E7" Foreground="#075C39" Style="{StaticResource ActionButton}"/>
+                    <Button Content="▣ Analisar arquivo (Ctrl+O)" Click="AnalyzeFile_Click" Background="#E7EEFF" Foreground="#304A8A" Style="{StaticResource ActionButton}"/>
                     <Button Content="⚡ Simular nova falha" Click="Simulate_Click" Style="{StaticResource ActionButton}"/>
                     <Button Content="Limpar" Click="Clear_Click" Background="#EEF1F5" Style="{StaticResource ActionButton}"/>
                     <Button Content="Sair" Click="Exit_Click" Background="#FDECEC" Foreground="#9B1C1C" Style="{StaticResource ActionButton}"/>
