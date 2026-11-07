@@ -4,6 +4,7 @@ param()
 $ProjectRoot = if ($PSScriptRoot) { $PSScriptRoot } else { (Get-Location).Path }
 $AppProject = Join-Path $ProjectRoot 'src\AssistentePatinho.App\AssistentePatinho.App.csproj'
 $ExportProject = Join-Path $ProjectRoot 'src\AssistentePatinho.Export\AssistentePatinho.Export.csproj'
+$AnalysisProject = Join-Path $ProjectRoot 'src\AssistentePatinho.Analysis\AssistentePatinho.Analysis.csproj'
 $TestProject = Join-Path $ProjectRoot 'tests\AssistentePatinho.Core.SmokeTests\AssistentePatinho.Core.SmokeTests.csproj'
 
 dotnet build $AppProject -c Release -v minimal
@@ -14,6 +15,11 @@ if ($LASTEXITCODE -ne 0) {
 dotnet build $ExportProject -c Release -v minimal
 if ($LASTEXITCODE -ne 0) {
     throw "A compilação do exportador Power BI falhou com o código $LASTEXITCODE."
+}
+
+dotnet build $AnalysisProject -c Release -v minimal
+if ($LASTEXITCODE -ne 0) {
+    throw "A compilação do analisador local falhou com o código $LASTEXITCODE."
 }
 
 dotnet run --project $TestProject -c Release

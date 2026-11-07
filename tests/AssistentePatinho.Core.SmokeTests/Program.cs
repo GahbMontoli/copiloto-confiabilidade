@@ -1,4 +1,5 @@
 using AssistentePatinho.Core;
+using AssistentePatinho.Core.Analysis;
 
 var failures = new List<string>();
 var passed = 0;
@@ -28,6 +29,11 @@ Check("inclui evidência rastreável", () => analysis.Evidence.Any(item => item.
 Check("aprova conjunto CMMS consistente", () => DoesNotThrow(() => CmmsDatasetValidator.ValidateOrThrow(dataset)));
 Check("exporta pacote tabular Power BI rastreável", () => ExportsPowerBiPackage(dataset));
 Check("bloqueia idade negativa de backlog", () => RejectsFutureBacklog(dataset));
+Check("analisador CSV encontra estrutura inconsistente", DetectsCsvQualityFindings);
+Check("analisador JSON preserva erro localizado", DetectsInvalidJson);
+Check("analisador JSON identifica objeto vazio", DetectsEmptyJsonObject);
+Check("analisador de log não transforma marcador em diagnóstico", DetectsLogMarkersWithLimitation);
+Check("cache local reutiliza análise pelo SHA-256", ReusesAnalysisCache);
 
 var unknown = Order("NOVA", "A3", false, "ELETRICA_DESCONHECIDA", "Ruído novo", "Sintoma ainda não classificado");
 var exploratory = new MaintenanceTriageEngine().Analyze(pump, unknown, new CmmsDataset([pump], [unknown]));
@@ -295,5 +301,106 @@ static bool RejectsFutureBacklog(CmmsDataset dataset)
         {
             Directory.Delete(directory, recursive: true);
         }
+    }
+}
+
+static bool DetectsCsvQualityFindings() => WithAnalysisFixture(
+    "dados.csv",
+    "tag,valor,valor\nA1,10\nA2,,20\n",
+    (engine, path, cache) =>
+    {
+        var report = engine.AnalyzeAsync(path, cache, "synthetic")
+            .GetAwaiter()
+            .GetResult();
+        return report.EvidenceClass == "derived" &&
+               report.SourceEvidenceClass == "synthetic" &&
+               report.Findings.Any(finding => finding.RuleId == "CSV_DUPLICATE_HEADER") &&
+               report.Findings.Any(finding => finding.RuleId == "CSV_ROW_WIDTH") &&
+               report.Findings.All(finding => !string.IsNullOrWhiteSpace(finding.Limitation));
+    });
+
+static bool DetectsInvalidJson() => WithAnalysisFixture(
+    "dados.json",
+    "{\"ativo\":",
+    (engine, path, cache) =>
+    {
+        var report = engine.AnalyzeAsync(path, cache)
+            .GetAwaiter()
+            .GetResult();
+        var finding = report.Findings.Single(item => item.RuleId == "JSON_INVALID");
+        return finding.Severity == FindingSeverity.Error &&
+               finding.Location.Contains("linha", StringComparison.OrdinalIgnoreCase);
+    });
+
+static bool DetectsEmptyJsonObject() => WithAnalysisFixture(
+    "vazio.json",
+    "{}",
+    (engine, path, cache) =>
+    {
+        var report = engine.AnalyzeAsync(path, cache)
+            .GetAwaiter()
+            .GetResult();
+        return report.Findings.Any(item => item.RuleId == "JSON_EMPTY_ROOT");
+    });
+
+static bool DetectsLogMarkersWithLimitation() => WithAnalysisFixture(
+    "equipamento.log",
+    "INFO inicializado\nWARN temperatura próxima ao limite\nERROR conexão interrompida\n",
+    (engine, path, cache) =>
+    {
+        var report = engine.AnalyzeAsync(path, cache)
+            .GetAwaiter()
+            .GetResult();
+        return report.RecordsInspected == 3 &&
+               report.Findings.Count == 2 &&
+               report.Findings.All(finding =>
+                   finding.Limitation.Contains("não confirma", StringComparison.OrdinalIgnoreCase));
+    });
+
+static bool ReusesAnalysisCache() => WithAnalysisFixture(
+    "cache.csv",
+    "tag,valor\nA1,10\n",
+    (engine, path, cache) =>
+    {
+        var first = engine.AnalyzeAsync(
+                path,
+                cache,
+                "lab_observed",
+                new DateTimeOffset(2026, 11, 7, 12, 0, 0, TimeSpan.Zero))
+            .GetAwaiter()
+            .GetResult();
+        var second = engine.AnalyzeAsync(
+                path,
+                cache,
+                "lab_observed",
+                new DateTimeOffset(2026, 11, 7, 13, 0, 0, TimeSpan.Zero))
+            .GetAwaiter()
+            .GetResult();
+        return !first.CacheHit && second.CacheHit &&
+               second.SourceSha256 == first.SourceSha256 &&
+               second.AnalyzedAtUtc == first.AnalyzedAtUtc &&
+               Directory.EnumerateFiles(cache, "*.json").Count() == 1;
+    });
+
+static bool WithAnalysisFixture(
+    string fileName,
+    string content,
+    Func<FileAnalysisEngine, string, string, bool> assertion)
+{
+    var root = Path.Combine(
+        Path.GetTempPath(),
+        "assistente-patinho-analysis-tests",
+        Guid.NewGuid().ToString("N"));
+    var cache = Path.Combine(root, "cache");
+    Directory.CreateDirectory(root);
+    var path = Path.Combine(root, fileName);
+    File.WriteAllText(path, content);
+    try
+    {
+        return assertion(new FileAnalysisEngine(), path, cache);
+    }
+    finally
+    {
+        Directory.Delete(root, recursive: true);
     }
 }

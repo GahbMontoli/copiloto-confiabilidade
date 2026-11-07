@@ -39,13 +39,36 @@ Os dados ficam em `src\AssistentePatinho.App\sample-cmms-data.json`. A interface
 - Soluções históricas são exibidas com a ordem de origem.
 - Intervenções continuam dependendo de validação técnica, segurança e aprovação humana.
 
+## Analysis Core local
+
+O primeiro núcleo de análise offline processa `.csv`, `.json`, `.log` e `.txt`
+sem transmitir conteúdo ou chamar um modelo de linguagem. Ele aplica regras
+estruturais versionadas, registra localização, severidade, evidência,
+recomendação e limitação, e reutiliza resultados por SHA-256 em cache local.
+
+```powershell
+.\Analisar-Arquivo.ps1 -Path .\dados.csv -EvidenceClass synthetic
+```
+
+O relatório JSON usa classe `derived` para os achados e mantém separada a classe
+de evidência declarada para a fonte. O cache padrão fica no perfil local do
+Windows e não armazena o conteúdo original, apenas o relatório derivado. Arquivos
+acima de 64 MiB e extensões não suportadas são recusados nesta versão.
+
+As regras atuais detectam problemas estruturais de CSV, JSON inválido ou vazio,
+proporção elevada de nulos e marcadores textuais de log. Marcadores como
+`ERROR` e `WARN` são pistas lexicais: não confirmam falha, severidade ou causa
+raiz. Excel, PDF, DXF/DWG, embeddings e modelos locais permanecem fora deste
+primeiro marco.
+
 ## Validar
 
 ```powershell
 .\Validar-AssistentePatinho.ps1
 ```
 
-A validação compila o aplicativo em Release e executa vinte e três cenários do núcleo,
+A validação compila o aplicativo e o analisador local em Release e executa vinte
+e oito cenários do núcleo,
 incluindo o contrato de exportação BI e a rejeição de backlog temporalmente inválido.
 
 ## Exportar dados para Power BI
